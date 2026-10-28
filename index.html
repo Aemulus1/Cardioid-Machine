@@ -17,7 +17,8 @@
 <label>Aantal punten: <strong id="nv">240</strong><input id="n" type="range" min="24" max="360" step="1" value="240"></label>
 <label>Verbindingsfactor: <strong id="fv">2.0</strong><input id="f" type="range" min="1" max="120" step=".1" value="2"></label>
 <label>Animatiesnelheid: <strong id="sv">1.0×</strong><input id="s" type="range" min=".2" max="4" step=".2" value="1"></label>
-<label style="display:flex;align-items:center;gap:9px">Holografisch effect <input id="holo" type="checkbox" style="width:auto;margin:0"></label>
+<label style="display:flex;align-items:center;gap:9px">Helderheid <input id="holo" type="checkbox" style="width:auto;margin:0"></label>
+<label style="display:flex;align-items:center;gap:9px">Holografische diepte <input id="depth" type="checkbox" style="width:auto;margin:0"></label>
 <label>Lijnkleuren<select id="color"><option value="rainbow">Regenboog</option><option value="white">Wit</option><option value="cyan">Cyaan</option></select></label>
 </div>
 <section class="about"><h2>DE WISKUNDE ACHTER DE MACHINE</h2><p>Gebaseerd op <strong>modulaire vermenigvuldiging op een cirkel</strong>. Punten worden volgens een wiskundige factor verbonden. Wanneer deze factor verandert, vloeien hartvormen, sterren en complexe geometrische patronen in elkaar over. Zo ontstaat een voortdurend samenspel van orde en beweging.</p><div class="credit">Mathematical art by Omnia &amp; Teekay · 2026</div></section>
@@ -27,7 +28,7 @@
 'use strict';
 const $=id=>document.getElementById(id),ctx=$('art').getContext('2d'),TAU=Math.PI*2;
 const presets=[['Evolutie',240,2],['Hart',240,2],['Bloem',240,3],['Rozet',240,7],['Ster',180,61],['Mandala',240,83],['Spiraal',300,1.4]];
-let n=240,factor=2,speed=1,color='rainbow',holo=false,preset='Hart',running=false,elapsed=0,last=0;
+let n=240,factor=2,speed=1,color='rainbow',holo=false,depth=false,preset='Hart',running=false,elapsed=0,last=0;
 function sync(){
  $('nv').textContent=n;$('fv').textContent=factor.toFixed(1);$('sv').textContent=speed.toFixed(1)+'×';
  $('play').textContent=running?'Ⅱ Pauze':'▶ Start';
@@ -51,6 +52,20 @@ function draw(){
     }
     g.strokeStyle=`hsla(${hue},90%,68%,.45)`;
    }
+   if(depth && color==='rainbow'){
+    // Three translucent layers: slight chromatic separation and slow parallax.
+    const hue=(i/n*360+elapsed*12)%360;
+    const phase=elapsed*.42;
+    const dx=2.6*Math.sin(phase)+1.2*Math.cos(i/n*TAU);
+    const dy=2.0*Math.cos(phase*.83)+1.2*Math.sin(i/n*TAU);
+    g.lineWidth=.48;
+    g.strokeStyle=`hsla(${(hue+32)%360},95%,64%,.16)`;
+    g.beginPath();g.moveTo(p[0]-dx,p[1]-dy);g.lineTo(tx-dx,ty-dy);g.stroke();
+    g.strokeStyle=`hsla(${(hue+328)%360},95%,64%,.16)`;
+    g.beginPath();g.moveTo(p[0]+dx,p[1]+dy);g.lineTo(tx+dx,ty+dy);g.stroke();
+    g.lineWidth=.65;
+    g.strokeStyle=`hsla(${hue},90%,68%,.45)`;
+   }
    g.beginPath();g.moveTo(p[0],p[1]);g.lineTo(tx,ty);g.stroke();
  }
  g.strokeStyle='rgba(255,255,255,.25)';g.lineWidth=1;g.beginPath();g.arc(cx,cy,r,0,TAU);g.stroke();
@@ -67,6 +82,7 @@ $('f').oninput=e=>{factor=+e.target.value;elapsed=0;preset='Eigen vorm';homeTarg
 $('s').oninput=e=>{speed=+e.target.value;sync()};
 $('color').onchange=e=>{color=e.target.value;draw()};
  $('holo').onchange=e=>{holo=e.target.checked;draw()};
+ $('depth').onchange=e=>{depth=e.target.checked;draw()};
 function tick(now){if(!last)last=now;const dt=Math.min(.06,(now-last)/1000);last=now;
  if(homeTarget!==null){const current=factor+elapsed*.22;const difference=homeTarget-current;const step=Math.min(1,dt*.6);const next=current+difference*step;factor=next;elapsed=0;if(Math.abs(difference)<.005){factor=homeTarget;homeTarget=null}draw();sync()}
  else if(running){elapsed+=dt*speed;draw();$('status').textContent='Animatie loopt · '+preset+' · factor '+(factor+elapsed*.22).toFixed(2)}
