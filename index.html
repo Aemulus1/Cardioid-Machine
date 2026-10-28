@@ -17,6 +17,7 @@
 <label>Aantal punten: <strong id="nv">240</strong><input id="n" type="range" min="24" max="360" step="1" value="240"></label>
 <label>Verbindingsfactor: <strong id="fv">2.0</strong><input id="f" type="range" min="1" max="120" step=".1" value="2"></label>
 <label>Animatiesnelheid: <strong id="sv">1.0×</strong><input id="s" type="range" min=".2" max="4" step=".2" value="1"></label>
+<label style="display:flex;align-items:center;gap:9px">Holografisch effect <input id="holo" type="checkbox" style="width:auto;margin:0"></label>
 <label>Lijnkleuren<select id="color"><option value="rainbow">Regenboog</option><option value="white">Wit</option><option value="cyan">Cyaan</option></select></label>
 </div>
 <section class="about"><h2>DE WISKUNDE ACHTER DE MACHINE</h2><p>Gebaseerd op <strong>modulaire vermenigvuldiging op een cirkel</strong>. Punten worden volgens een wiskundige factor verbonden. Wanneer deze factor verandert, vloeien hartvormen, sterren en complexe geometrische patronen in elkaar over. Zo ontstaat een voortdurend samenspel van orde en beweging.</p><div class="credit">Mathematical art by Omnia &amp; Teekay · 2026</div></section>
@@ -26,7 +27,7 @@
 'use strict';
 const $=id=>document.getElementById(id),ctx=$('art').getContext('2d'),TAU=Math.PI*2;
 const presets=[['Evolutie',240,2],['Hart',240,2],['Bloem',240,3],['Rozet',240,7],['Ster',180,61],['Mandala',240,83],['Spiraal',300,1.4]];
-let n=240,factor=2,speed=1,color='rainbow',preset='Hart',running=false,elapsed=0,last=0;
+let n=240,factor=2,speed=1,color='rainbow',holo=false,preset='Hart',running=false,elapsed=0,last=0;
 function sync(){
  $('nv').textContent=n;$('fv').textContent=factor.toFixed(1);$('sv').textContent=speed.toFixed(1)+'×';
  $('play').textContent=running?'Ⅱ Pauze':'▶ Start';
@@ -41,7 +42,16 @@ function draw(){
  for(let i=0;i<n;i++){
   const j=((i*f)%n+n)%n,k=Math.floor(j),u=j-k,p=pts[i],q=pts[k],v=pts[(k+1)%n];
   g.strokeStyle=color==='rainbow'?`hsla(${(i/n*360+elapsed*12)%360},90%,68%,.45)`:color==='white'?'rgba(245,248,255,.38)':'rgba(70,220,255,.45)';
-  g.beginPath();g.moveTo(p[0],p[1]);g.lineTo(q[0]*(1-u)+v[0]*u,q[1]*(1-u)+v[1]*u);g.stroke();
+  const tx=q[0]*(1-u)+v[0]*u,ty=q[1]*(1-u)+v[1]*u;
+   if(holo && color==='rainbow'){
+    const hue=(i/n*360+elapsed*12)%360;
+    for(const [offset,shift,alpha] of [[-1.5,28,.18],[1.5,-28,.18]]){
+     g.strokeStyle=`hsla(${(hue+shift+360)%360},100%,72%,${alpha})`;
+     g.beginPath();g.moveTo(p[0]+offset,p[1]);g.lineTo(tx+offset,ty);g.stroke();
+    }
+    g.strokeStyle=`hsla(${hue},90%,68%,.45)`;
+   }
+   g.beginPath();g.moveTo(p[0],p[1]);g.lineTo(tx,ty);g.stroke();
  }
  g.strokeStyle='rgba(255,255,255,.25)';g.lineWidth=1;g.beginPath();g.arc(cx,cy,r,0,TAU);g.stroke();
  g.fillStyle='#fff';for(const p of pts){g.beginPath();g.arc(p[0],p[1],1.3,0,TAU);g.fill()}
@@ -56,6 +66,7 @@ $('n').oninput=e=>{n=+e.target.value;preset='Eigen vorm';sync();draw()};
 $('f').oninput=e=>{factor=+e.target.value;elapsed=0;preset='Eigen vorm';homeTarget=null;sync();draw()};
 $('s').oninput=e=>{speed=+e.target.value;sync()};
 $('color').onchange=e=>{color=e.target.value;draw()};
+ $('holo').onchange=e=>{holo=e.target.checked;draw()};
 function tick(now){if(!last)last=now;const dt=Math.min(.06,(now-last)/1000);last=now;
  if(homeTarget!==null){const current=factor+elapsed*.22;const difference=homeTarget-current;const step=Math.min(1,dt*.6);const next=current+difference*step;factor=next;elapsed=0;if(Math.abs(difference)<.005){factor=homeTarget;homeTarget=null}draw();sync()}
  else if(running){elapsed+=dt*speed;draw();$('status').textContent='Animatie loopt · '+preset+' · factor '+(factor+elapsed*.22).toFixed(2)}
